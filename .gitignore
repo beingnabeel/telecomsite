@@ -1,0 +1,28 @@
+# Node modules in any directory
+**/node_modules/
+
+# Certificate directories
+**/certs/
+telecom-front-end/certs/
+telecom-back-end/certs/
+
+# Lock files
+**/package-lock.json
+**/yarn.lock
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
