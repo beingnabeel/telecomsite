@@ -13,12 +13,14 @@ const startLocalVideoStream = (streams, dispatch) => {
       const curStream = streams[s];
       //   addTracks to all peerConnection.
       localStream.stream.getVideoTracks().forEach((t) => {
-        curStream.peerConnection.addTrack(t, curStream.stream);
+        // curStream.peerConnection.addTrack(t, curStream.stream);
+        // here inside of peerconnection.addtrack I have the current stream track which means it's the other, it's the other users that's essentially the same as saying remoteConnection back in our old example and that's not what we want, this needs to be the local feed because we're adding it to the peerConnection, but it's the local side
+        curStream.peerConnection.addTrack(t, streams.localStream.stream);
       });
       //   update redux callstatus.
       //   here the update call status is part of redux it's not react.
       //   dispatch needs to be inside component but the updateCallStatus doesn't need to be inside the component.
-      dispatch(updateCallStatus('video', 'enabled'));
+      dispatch(updateCallStatus("video", "enabled"));
     }
   }
 };

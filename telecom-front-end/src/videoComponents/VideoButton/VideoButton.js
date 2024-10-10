@@ -2,12 +2,65 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import startLocalVideoStream from "./startLocalVideoStream";
 import updateCallStatus from "../../redux-elements/actions/updateCallStatus";
+import getDevices from "./getDevices";
+import addStream from "../../redux-elements/actions/addStream";
+import ActionButtonCaretDropDown from "../ActionButtonCaretDropDown";
 
 const VideoButton = ({ smallFeedEl }) => {
+  const dispatch = useDispatch();
   const callStatus = useSelector((state) => state.callStatus);
   const streams = useSelector((state) => state.streams);
   const [pendingUpdate, setPendingUpdate] = useState(false);
-  const dispatch = useDispatch();
+  const [caretOpen, setCaretOpen] = useState(false);
+  const [videoDeviceList, setVideoDeviceList] = useState([]);
+
+  //   it is very small component so we will keep it here
+  const DropDown = () => {
+    // getDevices();     we cant do this here becoz this is a pure function and we can't await this here.
+  };
+
+  useEffect(() => {
+    const getDeviceAsync = async () => {
+      if (caretOpen) {
+        // then we need to check for video devices.
+        const devices = await getDevices();
+        console.log(devices.videoDevices);
+        setVideoDeviceList(devices.videoDevices);
+      }
+    };
+    getDeviceAsync();
+  }, [caretOpen]);
+  const changeVideoDevice = async (e) => {
+    // the user changed the desired video device
+    // 1. we need to get that device
+    const deviceId = e.target.value;
+    // console.log(deviceId);
+    // 2. we need to getUserMedia (permissions)
+    const newConstraints = {
+      audio:
+        callStatus.audioDevice === "default"
+          ? true
+          : { deviceId: { exact: deviceId } },
+      video: { deviceId: { exact: deviceId } },
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(newConstraints);
+    // 3. update Redux with that videoDevice, and that video is enabled
+    dispatch(updateCallStatus("videoDevice", deviceId));
+    dispatch(updateCallStatus("video", "enabled"));
+    // 4. update the smallFeedEl
+    smallFeedEl.current.srcObject = stream;
+    // 5. we need to update the localStream in streams
+    // addstream takes the who and our first who is the local stream and the stream comes second and that the new stream that we just made
+    dispatch(addStream("localStream", stream));
+    // 6. add tracks
+    const tracks = stream.getVideoTracks();
+    // come back to this later
+    // if we stop the old tracks, and add the new tracks, that will mean
+    // ... renegotiation
+    // becoz the browser on the other side cannot gaurantee that it will be able to do that, there will be a blip in the bandwidth during renegotiation. we'll have to create a new offer potentially because we have changed new sdp's ice candidate etc...
+    // switching the track should not require renegotiation
+  };
+
   const startStopVideo = () => {
     // console.log("Sanity check");
     // first check if the video is enabled, if so disabled
@@ -46,13 +99,26 @@ const VideoButton = ({ smallFeedEl }) => {
   }, [pendingUpdate, callStatus.haveMedia]);
   return (
     <div className="button-wrapper video-button d-inline-block">
-      <i className="fa fa-caret-up choose-video"></i>
+      <i
+        className="fa fa-caret-up choose-video"
+        onClick={() => setCaretOpen(!caretOpen)}
+      ></i>
       <div className="button camera" onClick={startStopVideo}>
         <i className="fa fa-video"></i>
         <div className="btn-text">
           {callStatus.video === "enabled" ? "Stop" : "Start"} Video
         </div>
       </div>
+      {caretOpen ? (
+        <ActionButtonCaretDropDown
+          defaultValue={callStatus.videoDevice}
+          changeHandler={changeVideoDevice}
+          deviceList={videoDeviceList}
+          type="video"
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
